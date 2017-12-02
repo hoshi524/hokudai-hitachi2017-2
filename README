@@ -1,3 +1,17 @@
 # hokudai-hitachi2017-2
 
 https://beta.atcoder.jp/contests/hokudai-hitachi2017-2/tasks/hitachi2017_2_a
+
+# memo
+
+パスの作り方
+
+A = 設置済の頂点郡、マップ
+B = 未設置の頂点郡
+C = 設置する頂点
+D = AにあるCとconnection頂点郡
+E = Aから特殊ワーシャルフロイドで距離マップを作る
+F = EとDから距離が最小な中央点を１つ決める（重そう）
+G = Fから各Dに向かってpathを引いた頂点郡
+H = CとDのconnectionを維持したまま頂点を選択する（最悪、全てCを選択すればconnectionは維持される）
+I = C ∪ D で、Bにconnectionが１つもない頂点郡

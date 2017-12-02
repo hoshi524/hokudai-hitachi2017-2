@@ -9,8 +9,8 @@ def exec(command,seed):
     print('command : {}, seed : {}, score : {}'.format(command,seed,score))
     return [score, end - start]
 
-subprocess.call('mkdir out',shell=True)
-subprocess.call('mkdir testcase',shell=True)
+# subprocess.call('mkdir out',shell=True)
+# subprocess.call('mkdir testcase',shell=True)
 subprocess.call('g++-5 -std=gnu++1y -O2 -o out/graph_generator.out toolkit/scripts/graph_generator.cpp',shell=True)
 subprocess.call('g++-5 -std=gnu++1y -O2 -o out/score_evaluator.out toolkit/scripts/score_evaluator.cpp',shell=True)
 subprocess.call('g++-5 -std=gnu++1y -O2 -o out/main.out src/main.cpp',shell=True)
@@ -22,7 +22,7 @@ main_sum = 0
 main_time = 0
 test_sum = 0
 test_time = 0
-for i in range(1000):
+for i in range(10):
     subprocess.call('./out/graph_generator.out ./testcase/testcase {}'.format(i),shell=True)
     score, ela = exec(main,i)
     main_sum += score

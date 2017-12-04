@@ -154,12 +154,12 @@ int main() {
       // print();
       RemainVertex.erase(
           find(RemainVertex.begin(), RemainVertex.end(), vertex));
-      X[center] = vertex;
-      used.push_back(center);
+      put(center, vertex);
       vector<int> tmp = used;
       for (int p : tmp) {
         if (W[vertex][X[p]] && vertexDistance[X[p]] < maxDistance &&
             vertexDistance[X[p]] == distance[center][p]) {
+          vertexDistance[X[p]] = maxDistance;
           int pos = p;
           while (pos != center) {
             for (int d : direction) {

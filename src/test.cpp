@@ -133,7 +133,6 @@ int main() {
         }
       }
       if (vertex == -1) {
-        cerr << "bad" << endl;
         vertex = RemainVertex[0];
         for (int p : Position) {
           if (X[p] == V) {

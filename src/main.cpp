@@ -59,7 +59,7 @@ inline unsigned get_random() {
   return y ^= (y ^= (y ^= y << 13) >> 17) << 5;
 }
 
-constexpr double TIME_LIMIT = 1.9;
+constexpr double TIME_LIMIT = 0.9;
 constexpr int ROW = 1 << 5;
 constexpr int MAX_V = 1 << 9;
 constexpr int MAX_KV = ROW * ROW;

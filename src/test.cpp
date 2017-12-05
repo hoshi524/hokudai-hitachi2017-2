@@ -2,17 +2,69 @@
 #include <sys/time.h>
 using namespace std;
 
+class Timer {
+ public:
+  void restart();
+  double getElapsed();
+
+  Timer();
+
+ private:
+  static double rdtsc_per_sec_inv;
+
+  double getTimeOfDay();
+  unsigned long long int getCycle();
+
+  double start_time;
+  unsigned long long int start_clock;
+};
+double Timer::rdtsc_per_sec_inv = -1;
+
+inline double Timer::getElapsed() {
+  if (rdtsc_per_sec_inv != -1)
+    return (double)(getCycle() - start_clock) * rdtsc_per_sec_inv;
+
+  const double RDTSC_MEASUREMENT_INTERVAL = 0.1;
+  double res = getTimeOfDay() - start_time;
+  if (res <= RDTSC_MEASUREMENT_INTERVAL) return res;
+
+  rdtsc_per_sec_inv = 1.0 / (getCycle() - start_clock);
+  rdtsc_per_sec_inv *= getTimeOfDay() - start_time;
+  return getElapsed();
+}
+
+inline void Timer::restart() {
+  start_time = getTimeOfDay();
+  start_clock = getCycle();
+}
+
+Timer::Timer() { restart(); }
+
+inline double Timer::getTimeOfDay() {
+  timeval tv;
+  gettimeofday(&tv, 0);
+  return tv.tv_sec + tv.tv_usec * 0.000001;
+}
+
+inline unsigned long long int Timer::getCycle() {
+  unsigned int low, high;
+  __asm__ volatile("rdtsc" : "=a"(low), "=d"(high));
+  return ((unsigned long long int)low) | ((unsigned long long int)high << 32);
+}
+
+Timer timer;
+
 inline unsigned get_random() {
   static unsigned y = 2463534242;
   return y ^= (y ^= (y ^= y << 13) >> 17) << 5;
 }
 
 constexpr int ROW = 1 << 6;
-constexpr int MAX_V = 1 << 9;
+constexpr int MAX_V = 1 << 10;
 constexpr int MAX_KV = ROW * ROW;
 
 int V, E, KV, KE, KR;
-bool W[MAX_V][MAX_V];
+int8_t W[MAX_V][MAX_V];
 int X[MAX_KV];
 constexpr static int direction[] = {
     -ROW - 1, -ROW, -ROW + 1, -1, +1, +ROW - 1, +ROW, +ROW + 1,
@@ -22,19 +74,13 @@ void print() {
   for (int i = 1; i <= KR; ++i) {
     for (int j = 1; j <= KR; ++j) {
       int p = i * ROW + j;
-      if (X[p] < V)
+      if (X[p] < MAX_V - 1)
         fprintf(stderr, "%4d", X[i * ROW + j]);
       else
         fprintf(stderr, "    ");
     }
     fprintf(stderr, "\n");
   }
-}
-
-inline bool in(int p) {
-  int r = p >> 6;
-  int c = p & (ROW - 1);
-  return 0 < r && r <= KR && 0 < c && c <= KR;
 }
 
 int main() {
@@ -52,130 +98,120 @@ int main() {
     scanf("%d%d\n", &KV, &KE);
     KR = sqrt(KV);
   }
-  {  // Hill Climbing
-    int maxDistance = 5;
-  start:
-    for (int i = 0; i < MAX_KV; ++i) X[i] = V;
-    vector<int> RemainVertex;
-    for (int i = 1; i < V; ++i) RemainVertex.push_back(i);
-    vector<int> used;
-    {
-      int t = KR / 2 * ROW + KR / 2;
-      used.push_back(t);
-      X[t] = 0;
+  {  // Annealing
+    int size = 1;
+    while (true) {
+      ++size;
+      int t = KR / size;
+      if (t * t * size < V) {
+        --size;
+        break;
+      }
     }
-    vector<int> Position;
-    while (RemainVertex.size()) {
-      static int distance[MAX_KV][MAX_KV];
-      memset(distance, 0x0f, sizeof(distance));
-      for (int j = 0; j < MAX_KV; ++j) distance[j][j] = 0;
-      Position.clear();
-      for (int p : used) {
-        Position.push_back(p);
-        for (int d : direction)
-          if (in(p + d) && X[p + d] == V) Position.push_back(p + d);
-      }
-      sort(Position.begin(), Position.end());
-      Position.erase(unique(Position.begin(), Position.end()), Position.end());
-      for (int p : Position) {
-        if (X[p] < V) continue;
-        for (int d : direction) {
-          int n = p + d;
-          if (in(n)) {
-            distance[p][n] = 1;
-            distance[n][p] = 1;
-          }
+    assert(size < ROW);
+    int table[ROW * ROW];
+    memset(table, -1, sizeof(table));
+    for (int i = 0; i < size; ++i) {
+      int p = ROW * i, d = i & 1;
+      for (int j = 0; j < size; ++j) {
+        table[p] = i;
+        int n;
+        if (d) {
+          n = p + 1 - ROW;
+        } else {
+          n = p + 1 + ROW;
         }
-      }
-      for (int k : Position) {
-        if (X[k] < V) continue;
-        for (int i : Position) {
-          for (int j : Position) {
-            int d = distance[i][k] + distance[k][j];
-            if (distance[i][j] > d) distance[i][j] = d;
-          }
+        if (n < 0 || n >= size * ROW) {
+          n = p + 1;
+          d ^= 1;
+        } else if (table[n] != -1) {
+          n = p + 1;
         }
+        p = n;
       }
-      int vertex = -1;
-      int center = -1;
-      int value = 0;
-      static int vertexDistance[MAX_V];
-      for (int v : RemainVertex) {
-        static vector<int> target;
-        static set<int> targetVertex;
-        target.clear();
-        targetVertex.clear();
-        for (int p : used) {
-          if (W[v][X[p]]) {
-            target.push_back(p);
-            targetVertex.insert(X[p]);
-          }
-        }
-        if (target.empty()) continue;
-        for (int n : Position) {
-          if (X[n] < V) continue;
-          static int vd[MAX_V];
-          memset(vd, 0x0f, sizeof(vd));
-          for (int m : target) {
-            int d = distance[n][m];
-            if (vd[X[m]] > d) vd[X[m]] = d;
-          }
-          int t = 0;
-          for (int m : targetVertex)
-            if (vd[m] < maxDistance) t += 0xffff - vd[m];
-          t = (t << 8) + (get_random() & ((1 << 8) - 1));
-          if (value < t) {
-            value = t;
-            center = n;
-            vertex = v;
-            memcpy(vertexDistance, vd, sizeof(vd));
-          }
+    }
+    for (int r = 0; r < size; ++r) {
+      for (int c = 0; c < size; ++c) {
+        assert(table[r * ROW + c] != -1);
+      }
+    }
+    for (int i = 0; i < MAX_KV; ++i) X[i] = MAX_V - 1;
+    int t = KR / size;
+    int vertex = 0;
+    for (int i = 0, is = (V + size - 1) / size; i < is || i % t > 0; ++i) {
+      int p = (i / t * size + 1) * ROW + i % t * size + 1;
+      for (int r = 0; r < size; ++r) {
+        for (int c = 0; c < size; ++c) {
+          int t = p + r * ROW + c;
+          X[t] = table[r * ROW + c] + size * i;
+          if (vertex < X[t]) vertex = X[t] + 1;
         }
       }
-      if (vertex == -1) {
-        vertex = RemainVertex[0];
-        for (int p : Position) {
-          if (X[p] == V) {
-            center = p;
-            break;
-          }
-        }
-        if (center == -1) {
-          --maxDistance;
-          goto start;
-        }
-      }
-      // cerr << RemainVertex.size() << " " << used.size() << endl;
-      // print();
-      RemainVertex.erase(
-          find(RemainVertex.begin(), RemainVertex.end(), vertex));
-      X[center] = vertex;
-      used.push_back(center);
-      vector<int> tmp = used;
-      for (int p : tmp) {
-        if (W[vertex][X[p]] && vertexDistance[X[p]] < maxDistance &&
-            vertexDistance[X[p]] == distance[center][p]) {
-          int pos = p;
-          while (pos != center) {
-            for (int d : direction) {
-              int n = pos + d;
-              if (distance[center][pos] == distance[center][n] + 1 &&
-                  (X[n] == vertex || X[n] == V)) {
-                pos = n;
-                if (X[pos] == V) {
-                  X[pos] = vertex;
-                  used.push_back(pos);
-                }
-              }
+    }
+    int connect[MAX_V][MAX_V];
+    memset(connect, -1, sizeof(connect));
+    for (int v = 0; v < vertex; ++v) {
+      static set<int> set;
+      set.clear();
+      for (int p = 0; p < MAX_KV; ++p) {
+        if (X[p] == v) {
+          for (int d : direction) {
+            int n = p + d;
+            if (X[n] != V && X[n] != v) {
+              set.insert(X[n]);
             }
           }
         }
-        {
-          bool empty = false;
-          for (int d : direction) {
-            empty |= X[p + d] == V;
+      }
+      int s = 0;
+      for (int n : set) {
+        connect[v][s++] = n;
+      }
+    }
+    int x[MAX_V];
+    for (int i = 0; i < MAX_V; ++i) {
+      x[i] = i < V ? i : MAX_V - 1;
+    }
+
+    constexpr double TIME_LIMIT = 1.9;
+    constexpr int LOG_SIZE = 1 << 10;
+    double log_d[LOG_SIZE];
+    uint8_t log_[LOG_SIZE];
+    for (int i = 0; i < LOG_SIZE; ++i) {
+      log_d[i] = -0.5 * log((i + 0.5) / LOG_SIZE) / TIME_LIMIT;
+    }
+    while (true) {
+      double time = TIME_LIMIT - timer.getElapsed();
+      if (time < 0) break;
+      for (int i = 0; i < LOG_SIZE; ++i)
+        log_[i] = min(10.0, round(log_d[i] * time));
+      for (int t = 0; t < 0x10000; ++t) {
+        int a = get_random() % vertex;
+        int b = get_random() % vertex;
+        if (a == b) continue;
+        auto value = [&](int v) {
+          int t = 0;
+          for (int i = 0; connect[v][i] != -1; ++i) {
+            t += W[x[v]][x[connect[v][i]]];
           }
-          if (!empty) used.erase(find(used.begin(), used.end(), p));
+          return t;
+        };
+        int pv = value(a) + value(b);
+        swap(x[a], x[b]);
+        int nv = value(a) + value(b);
+        if (pv - nv > log_[get_random() & (LOG_SIZE - 1)]) {
+          swap(x[a], x[b]);
+        }
+      }
+    }
+
+    int T[MAX_KV];
+    memcpy(T, X, sizeof(T));
+    for (int i = 0; i < MAX_KV; ++i) X[i] = MAX_V - 1;
+    for (int i = 0; i < MAX_V; ++i) {
+      for (int j = 0; j < MAX_KV; ++j) {
+        if (T[j] == i) {
+          X[j] = x[i];
         }
       }
     }
@@ -183,7 +219,7 @@ int main() {
   {  // output
     vector<int> P[MAX_V];
     for (int i = 0; i < MAX_KV; ++i) {
-      if (X[i] < V) P[X[i]].push_back((i / ROW - 1) * KR + i % ROW);
+      if (X[i] < MAX_V - 1) P[X[i]].push_back((i / ROW - 1) * KR + i % ROW);
     }
     for (int i = 0; i < V; ++i) {
       printf("%d", (int)P[i].size());

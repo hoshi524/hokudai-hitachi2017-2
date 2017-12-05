@@ -178,12 +178,13 @@ int main() {
     double log_d[LOG_SIZE];
     uint8_t log_[LOG_SIZE];
     for (int i = 0; i < LOG_SIZE; ++i) {
-      log_d[i] = -1 * log((i + 0.5) / LOG_SIZE) / TIME_LIMIT;
+      log_d[i] = -0.5 * log((i + 0.5) / LOG_SIZE) / TIME_LIMIT;
     }
     while (true) {
       double time = TIME_LIMIT - timer.getElapsed();
       if (time < 0) break;
-      for (int i = 0; i < LOG_SIZE; ++i) log_[i] = round(log_d[i] * time);
+      for (int i = 0; i < LOG_SIZE; ++i)
+        log_[i] = min(10.0, round(log_d[i] * time));
       for (int t = 0; t < 0x10000; ++t) {
         int a = get_random() % vertex;
         int b = get_random() % vertex;

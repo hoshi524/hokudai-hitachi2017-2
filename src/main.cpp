@@ -127,19 +127,19 @@ int main() {
         vertex = 0;
         for (int i = 1; i + size <= KR + 1; i += size) {
           for (int j = 1; j <= KR; ++j) {
-            if ((i + j) & 1) {
-              if (j >= size) {
-                for (int k = 0, p = i * ROW + j; k < size; ++k) {
-                  X[p] = vertex;
-                  p += ROW - 1;
-                }
-                ++vertex;
-              }
-            } else {
+            if (j & 1) {
               if (j + size <= KR + 1) {
                 for (int k = 0, p = i * ROW + j; k < size; ++k) {
                   X[p] = vertex;
                   p += ROW + 1;
+                }
+                ++vertex;
+              }
+            } else {
+              if (j >= size) {
+                for (int k = 0, p = i * ROW + j; k < size; ++k) {
+                  X[p] = vertex;
+                  p += ROW - 1;
                 }
                 ++vertex;
               }
@@ -149,7 +149,51 @@ int main() {
         if (vertex >= V) break;
         --size;
       }
-      int connect[MAX_V][MAX_V];
+      {
+        bool ok = true;
+        while (ok) {
+          ok = false;
+          for (int i = 0; i < MAX_KV; ++i) {
+            int r = i >> 6;
+            int c = i & (ROW - 1);
+            if (r < 2 || c < 2 || r >= KR - 1 || c >= KR - 1) continue;
+            static int ROWA[] = {ROW, -ROW};
+            for (int row : ROWA) {
+              if (X[i] < vertex && X[i] == X[i + row + 1] &&
+                  X[i - row - 1] > vertex && X[i - row] < vertex &&
+                  X[i - row + 1] < vertex && X[i + row - 1] < vertex) {
+                ok = true;
+                for (int j = 0, p = i; j < size; ++j) {
+                  int D[] = {-row + 1, -row, -row - 1};
+                  for (int d : D) {
+                    if (X[p + d] > vertex) {
+                      X[p + d] = X[p];
+                      p += d;
+                      break;
+                    }
+                  }
+                }
+              }
+              if (X[i] < vertex && X[i] == X[i + row - 1] &&
+                  X[i - row + 1] > vertex && X[i - row] < vertex &&
+                  X[i - row - 1] < vertex && X[i + row + 1] < vertex) {
+                ok = true;
+                for (int j = 0, p = i; j < size; ++j) {
+                  int D[] = {-row - 1, -row, -row + 1};
+                  for (int d : D) {
+                    if (X[p + d] > vertex) {
+                      X[p + d] = X[p];
+                      p += d;
+                      break;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      int16_t connect[MAX_V][MAX_V];
       memset(connect, -1, sizeof(connect));
       int sum = 0;
       for (int v = 0; v < vertex; ++v) {
@@ -172,11 +216,11 @@ int main() {
         sum += set.size();
       }
       cerr << size << " " << (double)sum / vertex << endl;
-      int x[MAX_V];
+      int16_t x[MAX_V];
+      int16_t best[MAX_V];
       for (int i = 0; i < MAX_V; ++i) {
         x[i] = i < V ? i : MAX_V - 1;
       }
-
       constexpr double TIME_LIMIT = 1.9;
       constexpr int LOG_SIZE = 1 << 10;
       double log_d[LOG_SIZE];
@@ -184,6 +228,7 @@ int main() {
       for (int i = 0; i < LOG_SIZE; ++i) {
         log_d[i] = -0.5 * log((i + 0.5) / LOG_SIZE) / TIME_LIMIT;
       }
+      int score = 0, bestScore = 0;
       while (true) {
         double time = TIME_LIMIT - timer.getElapsed();
         if (time < 0) break;
@@ -203,19 +248,25 @@ int main() {
           int pv = value(a) + value(b);
           swap(x[a], x[b]);
           int nv = value(a) + value(b);
-          if (pv - nv > log_[get_random() & (LOG_SIZE - 1)]) {
+          int d = pv - nv;
+          if (d > log_[get_random() & (LOG_SIZE - 1)]) {
             swap(x[a], x[b]);
+          } else {
+            score -= d;
+            if (bestScore < score) {
+              bestScore = score;
+              memcpy(best, x, sizeof(x));
+            }
           }
         }
       }
-
       int T[MAX_KV];
       memcpy(T, X, sizeof(T));
       for (int i = 0; i < MAX_KV; ++i) X[i] = MAX_V - 1;
       for (int i = 0; i < MAX_V; ++i) {
         for (int j = 0; j < MAX_KV; ++j) {
           if (T[j] == i) {
-            X[j] = x[i];
+            X[j] = best[i];
           }
         }
       }

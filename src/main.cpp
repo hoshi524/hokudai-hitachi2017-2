@@ -150,9 +150,74 @@ int main() {
         --size;
       }
       {
-        bool ok = true;
-        while (ok) {
-          ok = false;
+        if (size & 1) {
+          for (int r = 1; r < KR; ++r) {
+            for (int c = 1; c < KR; ++c) {
+              int i = r * ROW + c;
+              static int K[] = {1, -1};
+              for (int k : K) {
+                if (X[i] < vertex && X[i - k] > vertex && X[i + k] < vertex &&
+                    X[i + ROW] < vertex && X[i - ROW] < vertex &&
+                    X[i - ROW - k] < vertex && X[i + ROW - k] < vertex &&
+                    X[i] != X[i - ROW - k] && X[i] != X[i + ROW - k]) {
+                  X[i - k] = X[i];
+                  i -= k;
+                  static int ROWA[] = {ROW, -ROW};
+                  for (int row : ROWA) {
+                    int di = 3;
+                    int D[] = {-row + k, -row, -row - k};
+                    for (int j = 0, p = i; j < size; ++j) {
+                      for (int j = 0; j < di; ++j) {
+                        int d = D[j];
+                        if (X[p + d] > vertex &&
+                            (X[p + d + 1] < vertex || X[p + d - 1] < vertex) &&
+                            (X[p + d + row] < vertex ||
+                             X[p + d - row] < vertex)) {
+                          X[p + d] = X[p];
+                          p += d;
+                          di = j + 1;
+                          break;
+                        }
+                      }
+                    }
+                  }
+                  r = 1;
+                  c = 1;
+                }
+              }
+            }
+          }
+          // 適当に埋める
+          for (int r = 1; r <= KR; ++r) {
+            for (int c = 1; c <= KR; ++c) {
+              int p = r * ROW + c;
+              if (X[p] > vertex) {
+                int t = 0;
+                if (X[p - 1] < vertex) ++t;
+                if (X[p + 1] < vertex) ++t;
+                if (X[p - ROW] < vertex) ++t;
+                if (X[p + ROW] < vertex) ++t;
+                if (t >= 2) {
+                  int v = 0;
+                  static int D[] = {ROW - 1, ROW + 1, -ROW - 1, -ROW + 1};
+                  for (int d : D) {
+                    int n = p + d;
+                    if (X[n] < vertex) {
+                      int a = get_random();
+                      if (v < a) {
+                        v = a;
+                        t = n;
+                      }
+                    }
+                  }
+                  X[p] = X[t];
+                  r = 1;
+                  c = 1;
+                }
+              }
+            }
+          }
+        } else {
           for (int i = 0; i < MAX_KV; ++i) {
             int r = i >> 6;
             int c = i & (ROW - 1);
@@ -162,9 +227,8 @@ int main() {
               if (X[i] < vertex && X[i] == X[i + row + 1] &&
                   X[i - row - 1] > vertex && X[i - row] < vertex &&
                   X[i - row + 1] < vertex && X[i + row - 1] < vertex) {
-                ok = true;
+                int D[] = {-row + 1, -row, -row - 1};
                 for (int j = 0, p = i; j < size; ++j) {
-                  int D[] = {-row + 1, -row, -row - 1};
                   for (int d : D) {
                     if (X[p + d] > vertex) {
                       X[p + d] = X[p];
@@ -177,9 +241,8 @@ int main() {
               if (X[i] < vertex && X[i] == X[i + row - 1] &&
                   X[i - row + 1] > vertex && X[i - row] < vertex &&
                   X[i - row - 1] < vertex && X[i + row + 1] < vertex) {
-                ok = true;
+                int D[] = {-row - 1, -row, -row + 1};
                 for (int j = 0, p = i; j < size; ++j) {
-                  int D[] = {-row - 1, -row, -row + 1};
                   for (int d : D) {
                     if (X[p + d] > vertex) {
                       X[p + d] = X[p];
@@ -188,11 +251,13 @@ int main() {
                     }
                   }
                 }
+                i = 0;
               }
             }
           }
         }
       }
+      print();
       int16_t connect[MAX_V][MAX_V];
       memset(connect, -1, sizeof(connect));
       int sum = 0;

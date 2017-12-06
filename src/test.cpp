@@ -99,119 +99,131 @@ int main() {
     KR = sqrt(KV);
   }
   {  // Annealing
-    int size = 1;
-    while (true) {
-      ++size;
-      int t = KR / size;
-      if (t * t * size < V) {
+    if (V <= KR) {
+      for (int i = 0; i < MAX_KV; ++i) X[i] = MAX_V - 1;
+      for (int i = 1; i <= V; ++i) {
+        int p = ROW * i + 1, d = i & 1;
+        for (int j = 1; j <= V; ++j) {
+          X[p] = i - 1;
+          int n;
+          if (d) {
+            n = p + 1 + ROW;
+          } else {
+            n = p + 1 - ROW;
+          }
+          if (n < ROW || n >= (V + 1) * ROW) {
+            n = p + 1;
+            d ^= 1;
+          } else if (X[n] != MAX_V - 1) {
+            n = p + 1;
+          }
+          p = n;
+        }
+      }
+    } else {
+      int size = 40, vertex;
+      while (true) {
+        for (int i = 0; i < MAX_KV; ++i) X[i] = MAX_V - 1;
+        vertex = 0;
+        for (int i = 1; i + size <= KR + 1; i += size) {
+          for (int j = 1; j <= KR; ++j) {
+            if ((i + j) & 1) {
+              if (j >= size) {
+                for (int k = 0, p = i * ROW + j; k < size; ++k) {
+                  X[p] = vertex;
+                  p += ROW - 1;
+                }
+                ++vertex;
+              }
+            } else {
+              if (j + size <= KR + 1) {
+                for (int k = 0, p = i * ROW + j; k < size; ++k) {
+                  X[p] = vertex;
+                  p += ROW + 1;
+                }
+                ++vertex;
+              }
+            }
+          }
+        }
+        if (vertex >= V) break;
         --size;
-        break;
       }
-    }
-    assert(size < ROW);
-    int table[ROW * ROW];
-    memset(table, -1, sizeof(table));
-    for (int i = 0; i < size; ++i) {
-      int p = ROW * i, d = i & 1;
-      for (int j = 0; j < size; ++j) {
-        table[p] = i;
-        int n;
-        if (d) {
-          n = p + 1 - ROW;
-        } else {
-          n = p + 1 + ROW;
+      int16_t connect[MAX_V][MAX_V];
+      memset(connect, -1, sizeof(connect));
+      int sum = 0;
+      for (int v = 0; v < vertex; ++v) {
+        static set<int> set;
+        set.clear();
+        for (int p = 0; p < MAX_KV; ++p) {
+          if (X[p] == v) {
+            for (int d : direction) {
+              int n = p + d;
+              if (X[n] != V && X[n] != v) {
+                set.insert(X[n]);
+              }
+            }
+          }
         }
-        if (n < 0 || n >= size * ROW) {
-          n = p + 1;
-          d ^= 1;
-        } else if (table[n] != -1) {
-          n = p + 1;
+        int s = 0;
+        for (int n : set) {
+          connect[v][s++] = n;
         }
-        p = n;
+        sum += set.size();
       }
-    }
-    for (int r = 0; r < size; ++r) {
-      for (int c = 0; c < size; ++c) {
-        assert(table[r * ROW + c] != -1);
+      cerr << size << " " << (double)sum / vertex << endl;
+      int16_t x[MAX_V];
+      int16_t best[MAX_V];
+      for (int i = 0; i < MAX_V; ++i) {
+        x[i] = i < V ? i : MAX_V - 1;
       }
-    }
-    for (int i = 0; i < MAX_KV; ++i) X[i] = MAX_V - 1;
-    int t = KR / size;
-    int vertex = 0;
-    for (int i = 0, is = (V + size - 1) / size; i < is || i % t > 0; ++i) {
-      int p = (i / t * size + 1) * ROW + i % t * size + 1;
-      for (int r = 0; r < size; ++r) {
-        for (int c = 0; c < size; ++c) {
-          int t = p + r * ROW + c;
-          X[t] = table[r * ROW + c] + size * i;
-          if (vertex < X[t]) vertex = X[t] + 1;
-        }
+      constexpr double TIME_LIMIT = 1.9;
+      constexpr int LOG_SIZE = 1 << 10;
+      double log_d[LOG_SIZE];
+      uint8_t log_[LOG_SIZE];
+      for (int i = 0; i < LOG_SIZE; ++i) {
+        log_d[i] = -0.5 * log((i + 0.5) / LOG_SIZE) / TIME_LIMIT;
       }
-    }
-    int connect[MAX_V][MAX_V];
-    memset(connect, -1, sizeof(connect));
-    for (int v = 0; v < vertex; ++v) {
-      static set<int> set;
-      set.clear();
-      for (int p = 0; p < MAX_KV; ++p) {
-        if (X[p] == v) {
-          for (int d : direction) {
-            int n = p + d;
-            if (X[n] != V && X[n] != v) {
-              set.insert(X[n]);
+      int score = 0, bestScore = 0;
+      while (true) {
+        double time = TIME_LIMIT - timer.getElapsed();
+        if (time < 0) break;
+        for (int i = 0; i < LOG_SIZE; ++i)
+          log_[i] = min(10.0, round(log_d[i] * time));
+        for (int t = 0; t < 0x10000; ++t) {
+          int a = get_random() % vertex;
+          int b = get_random() % vertex;
+          if (a == b) continue;
+          auto value = [&](int v) {
+            int t = 0;
+            for (int i = 0; connect[v][i] != -1; ++i) {
+              t += W[x[v]][x[connect[v][i]]];
+            }
+            return t;
+          };
+          int pv = value(a) + value(b);
+          swap(x[a], x[b]);
+          int nv = value(a) + value(b);
+          int d = pv - nv;
+          if (d > log_[get_random() & (LOG_SIZE - 1)]) {
+            swap(x[a], x[b]);
+          } else {
+            score -= d;
+            if (bestScore < score) {
+              bestScore = score;
+              memcpy(best, x, sizeof(x));
             }
           }
         }
       }
-      int s = 0;
-      for (int n : set) {
-        connect[v][s++] = n;
-      }
-    }
-    int x[MAX_V];
-    for (int i = 0; i < MAX_V; ++i) {
-      x[i] = i < V ? i : MAX_V - 1;
-    }
-
-    constexpr double TIME_LIMIT = 1.9;
-    constexpr int LOG_SIZE = 1 << 10;
-    double log_d[LOG_SIZE];
-    uint8_t log_[LOG_SIZE];
-    for (int i = 0; i < LOG_SIZE; ++i) {
-      log_d[i] = -0.5 * log((i + 0.5) / LOG_SIZE) / TIME_LIMIT;
-    }
-    while (true) {
-      double time = TIME_LIMIT - timer.getElapsed();
-      if (time < 0) break;
-      for (int i = 0; i < LOG_SIZE; ++i)
-        log_[i] = min(10.0, round(log_d[i] * time));
-      for (int t = 0; t < 0x10000; ++t) {
-        int a = get_random() % vertex;
-        int b = get_random() % vertex;
-        if (a == b) continue;
-        auto value = [&](int v) {
-          int t = 0;
-          for (int i = 0; connect[v][i] != -1; ++i) {
-            t += W[x[v]][x[connect[v][i]]];
+      int T[MAX_KV];
+      memcpy(T, X, sizeof(T));
+      for (int i = 0; i < MAX_KV; ++i) X[i] = MAX_V - 1;
+      for (int i = 0; i < MAX_V; ++i) {
+        for (int j = 0; j < MAX_KV; ++j) {
+          if (T[j] == i) {
+            X[j] = best[i];
           }
-          return t;
-        };
-        int pv = value(a) + value(b);
-        swap(x[a], x[b]);
-        int nv = value(a) + value(b);
-        if (pv - nv > log_[get_random() & (LOG_SIZE - 1)]) {
-          swap(x[a], x[b]);
-        }
-      }
-    }
-
-    int T[MAX_KV];
-    memcpy(T, X, sizeof(T));
-    for (int i = 0; i < MAX_KV; ++i) X[i] = MAX_V - 1;
-    for (int i = 0; i < MAX_V; ++i) {
-      for (int j = 0; j < MAX_KV; ++j) {
-        if (T[j] == i) {
-          X[j] = x[i];
         }
       }
     }

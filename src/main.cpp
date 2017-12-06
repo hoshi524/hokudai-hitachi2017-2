@@ -257,30 +257,96 @@ int main() {
           }
         }
       }
-      print();
       int16_t connect[MAX_V][MAX_V];
-      memset(connect, -1, sizeof(connect));
-      int sum = 0;
-      for (int v = 0; v < vertex; ++v) {
-        static set<int> set;
-        set.clear();
-        for (int p = 0; p < MAX_KV; ++p) {
-          if (X[p] == v) {
-            for (int d : direction) {
-              int n = p + d;
-              if (X[n] != V && X[n] != v) {
-                set.insert(X[n]);
+      {  // connect
+        auto calcConnectVertex = [&](int v) {
+          static set<int> set;
+          set.clear();
+          for (int p = 0; p < MAX_KV; ++p) {
+            if (X[p] == v) {
+              for (int d : direction) {
+                int n = p + d;
+                if (X[n] != V && X[n] != v) {
+                  set.insert(X[n]);
+                }
               }
             }
           }
+          int s = 0;
+          for (int n : set) {
+            connect[v][s++] = n;
+          }
+          return set.size();
+        };
+        auto calcConnect = [&]() {
+          memset(connect, -1, sizeof(connect));
+          int sum = 0;
+          for (int v = 0; v < vertex; ++v) {
+            sum += calcConnectVertex(v);
+          }
+          cerr << size << " " << (double)sum / vertex << endl;
+        };
+        calcConnect();
+        {  // merge
+          for (int t = V; t < vertex; ++t) {
+            static int value[MAX_V][MAX_V];
+            for (int i = 0; i < vertex; ++i) {
+              for (int j = 0; j < vertex; ++j) {
+                value[i][j] = INT_MIN;
+              }
+            }
+            for (int r = 1; r <= KR; ++r) {
+              for (int c = 1; c <= KR; ++c) {
+                int p = r * ROW + c;
+                if (X[p] > vertex) continue;
+                for (int d : direction) {
+                  int n = p + d;
+                  if (X[n] > vertex) continue;
+                  if (X[p] == X[n]) continue;
+                  if (value[X[p]][X[n]] != INT_MIN) continue;
+                  static set<int> set;
+                  set.clear();
+                  int ps, ns;
+                  for (ps = 0; connect[X[p]][ps] != -1; ++ps) {
+                    set.insert(connect[X[p]][ps]);
+                  }
+                  for (ns = 0; connect[X[n]][ns] != -1; ++ns) {
+                    set.insert(connect[X[n]][ns]);
+                  }
+                  int v = -((ps + ns - set.size()) << 10) - (set.size() << 8) +
+                          (get_random() & 0xff);
+                  value[X[p]][X[n]] = v;
+                  value[X[n]][X[p]] = v;
+                }
+              }
+            }
+            int v = INT_MIN, vmin, vmax;
+            for (int i = 0; i < vertex; ++i) {
+              for (int j = i + 1; j < vertex; ++j) {
+                if (v < value[i][j]) {
+                  v = value[i][j];
+                  vmin = i;
+                  vmax = j;
+                }
+              }
+            }
+            for (int i = 0; i < MAX_KV; ++i) {
+              if (X[i] == vmax) X[i] = vmin;
+            }
+            calcConnectVertex(vmin);
+          }
+          int trans[MAX_KV];
+          memset(trans, -1, sizeof(trans));
+          for (int i = 0, v = 0; i < MAX_KV; ++i) {
+            if (X[i] < vertex) {
+              if (trans[X[i]] == -1) trans[X[i]] = v++;
+              X[i] = trans[X[i]];
+            }
+          }
+          vertex = V;
+          calcConnect();
         }
-        int s = 0;
-        for (int n : set) {
-          connect[v][s++] = n;
-        }
-        sum += set.size();
       }
-      cerr << size << " " << (double)sum / vertex << endl;
       int16_t x[MAX_V];
       int16_t best[MAX_V];
       for (int i = 0; i < MAX_V; ++i) {

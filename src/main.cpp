@@ -346,47 +346,150 @@ int main() {
           vertex = V;
           calcConnect();
         }
+        {
+          if (X[ROW + KR] > vertex) {
+            int x, v = 0xffff;
+            for (int r = 1; r <= KR; ++r) {
+              int p = r * ROW + KR - 1;
+              if (X[p] > vertex) continue;
+              int t;
+              for (t = 0; connect[X[p]][t] != -1; ++t) {
+              }
+              if (v > t) {
+                v = t;
+                x = X[p];
+              }
+            }
+            for (int r = 1; r <= KR; ++r) {
+              int p = r * ROW + KR - 1;
+              if (X[p] > vertex) continue;
+              X[p + 1] = x;
+            }
+            calcConnectVertex(x);
+          }
+          int r;
+          for (r = 1; r <= KR; ++r)
+            if (X[r * ROW + 1] > vertex) break;
+          auto select = [&](int r, int &v1, int &v2) {
+            int v = 0xffff;
+            for (int c = 1; c <= KR; ++c) {
+              int p = r * ROW + c;
+              if (X[p] > vertex) continue;
+              int t;
+              for (t = 0; connect[X[p]][t] != -1; ++t) {
+              }
+              if (v > t) {
+                v = t;
+                v1 = X[p];
+              }
+            }
+            v = 0xffff;
+            for (int c = 1; c <= KR; ++c) {
+              int p = r * ROW + c;
+              if (X[p] > vertex || v1 == X[p]) continue;
+              int t;
+              for (t = 0; connect[X[p]][t] != -1; ++t) {
+              }
+              if (v > t) {
+                v = t;
+                v2 = X[p];
+              }
+            }
+          };
+          if (r + 1 <= KR) {
+            int v1, v2;
+            select(r - 1, v1, v2);
+            for (int c = 1; c <= KR; ++c) {
+              X[r * ROW + c] = c & 1 ? v1 : v2;
+              X[(r + 1) * ROW + c] = c & 1 ? v2 : v1;
+            }
+          } else if (r <= KR) {
+            int v1, v2;
+            select(r - 1, v1, v2);
+            for (int c = 1; c <= KR; ++c) {
+              X[r * ROW + c] = v1;
+            }
+          }
+          if (r + 3 <= KR) {
+            for (int r = KR; r > 2; --r) {
+              for (int c = 1; c <= KR; ++c) {
+                X[r * ROW + c] = X[(r - 2) * ROW + c];
+              }
+            }
+            int v1, v2;
+            select(3, v1, v2);
+            for (int c = 1; c <= KR; ++c) {
+              X[ROW + c] = c & 1 ? v1 : v2;
+              X[ROW + ROW + c] = c & 1 ? v2 : v1;
+            }
+          } else if (r + 2 <= KR) {
+            for (int r = KR; r > 1; --r) {
+              for (int c = 1; c <= KR; ++c) {
+                X[r * ROW + c] = X[(r - 1) * ROW + c];
+              }
+            }
+            int v1, v2;
+            select(2, v1, v2);
+            for (int c = 1; c <= KR; ++c) {
+              X[ROW + c] = v1;
+            }
+          }
+          calcConnect();
+        }
       }
       int16_t x[MAX_V];
       int16_t best[MAX_V];
       for (int i = 0; i < MAX_V; ++i) {
         x[i] = i < V ? i : MAX_V - 1;
       }
-      constexpr double TIME_LIMIT = 1.9;
-      constexpr int LOG_SIZE = 1 << 10;
-      double log_d[LOG_SIZE];
-      uint8_t log_[LOG_SIZE];
-      for (int i = 0; i < LOG_SIZE; ++i) {
-        log_d[i] = -0.5 * log((i + 0.5) / LOG_SIZE) / TIME_LIMIT;
-      }
-      int score = 0, bestScore = 0;
-      while (true) {
-        double time = TIME_LIMIT - timer.getElapsed();
-        if (time < 0) break;
-        for (int i = 0; i < LOG_SIZE; ++i)
-          log_[i] = min(10.0, round(log_d[i] * time));
-        for (int t = 0; t < 0x10000; ++t) {
-          int a = get_random() % vertex;
-          int b = get_random() % vertex;
-          if (a == b) continue;
-          auto value = [&](int v) {
-            int t = 0;
-            for (int i = 0; connect[v][i] != -1; ++i) {
-              t += W[x[v]][x[connect[v][i]]];
-            }
-            return t;
-          };
-          int pv = value(a) + value(b);
-          swap(x[a], x[b]);
-          int nv = value(a) + value(b);
-          int d = pv - nv;
-          if (d > log_[get_random() & (LOG_SIZE - 1)]) {
+      auto value = [&](int v) {
+        int t = 0;
+        for (int i = 0; connect[v][i] != -1; ++i) {
+          t += W[x[v]][x[connect[v][i]]];
+        }
+        return t;
+      };
+      int score, bestScore = INT_MIN;
+      if (V < 11) {
+        do {
+          score = 0;
+          for (int i = 0; i < V; ++i) {
+            score += value(i);
+          }
+          if (bestScore < score) {
+            bestScore = score;
+            memcpy(best, x, sizeof(x));
+          }
+        } while (next_permutation(x, x + V));
+      } else {
+        constexpr double TIME_LIMIT = 1.9;
+        constexpr int LOG_SIZE = 1 << 10;
+        double log_d[LOG_SIZE];
+        uint8_t log_[LOG_SIZE];
+        for (int i = 0; i < LOG_SIZE; ++i) {
+          log_d[i] = -0.5 * log((i + 0.5) / LOG_SIZE) / TIME_LIMIT;
+        }
+        while (true) {
+          double time = TIME_LIMIT - timer.getElapsed();
+          if (time < 0) break;
+          for (int i = 0; i < LOG_SIZE; ++i)
+            log_[i] = min(10.0, round(log_d[i] * time));
+          for (int t = 0; t < 0x10000; ++t) {
+            int a = get_random() % vertex;
+            int b = get_random() % vertex;
+            if (a == b) continue;
+            int pv = value(a) + value(b);
             swap(x[a], x[b]);
-          } else {
-            score -= d;
-            if (bestScore < score) {
-              bestScore = score;
-              memcpy(best, x, sizeof(x));
+            int nv = value(a) + value(b);
+            int d = pv - nv;
+            if (d > log_[get_random() & (LOG_SIZE - 1)]) {
+              swap(x[a], x[b]);
+            } else {
+              score -= d;
+              if (bestScore < score) {
+                bestScore = score;
+                memcpy(best, x, sizeof(x));
+              }
             }
           }
         }

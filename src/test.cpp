@@ -449,7 +449,7 @@ int main() {
       for (int i = 0; i < LOG_SIZE; ++i) {
         log_d[i] = -0.5 * log((i + 0.5) / LOG_SIZE) / TIME_LIMIT;
       }
-      int score = 0, bestScore = 0;
+      int score = 0, bestScore = INT_MIN;
       while (true) {
         double time = TIME_LIMIT - timer.getElapsed();
         if (time < 0) break;

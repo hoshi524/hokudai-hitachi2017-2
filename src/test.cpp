@@ -122,7 +122,7 @@ int main() {
         }
       }
       ++V;
-      for (int i = 2; i < V - 1; ++i) {
+      for (int i = 1; i < V; ++i) {
         X[i * ROW + V - 1] = V - 1;
       }
     } else {

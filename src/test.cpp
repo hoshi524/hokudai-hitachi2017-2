@@ -99,11 +99,12 @@ int main() {
     KR = sqrt(KV);
   }
   {  // Annealing
-    if (V <= KR) {
+    if (V <= KR + 1) {
       for (int i = 0; i < MAX_KV; ++i) X[i] = MAX_V - 1;
+      --V;
       for (int i = 1; i <= V; ++i) {
         int p = ROW * i + 1, d = i & 1;
-        for (int j = 1; j <= V; ++j) {
+        for (int j = 1; j < V; ++j) {
           X[p] = i - 1;
           int n;
           if (d) {
@@ -119,6 +120,10 @@ int main() {
           }
           p = n;
         }
+      }
+      ++V;
+      for (int i = 2; i < V - 1; ++i) {
+        X[i * ROW + V - 1] = V - 1;
       }
     } else {
       int size = 40, vertex;
@@ -442,41 +447,54 @@ int main() {
       for (int i = 0; i < MAX_V; ++i) {
         x[i] = i < V ? i : MAX_V - 1;
       }
-      constexpr double TIME_LIMIT = 1.9;
-      constexpr int LOG_SIZE = 1 << 10;
-      double log_d[LOG_SIZE];
-      uint8_t log_[LOG_SIZE];
-      for (int i = 0; i < LOG_SIZE; ++i) {
-        log_d[i] = -0.5 * log((i + 0.5) / LOG_SIZE) / TIME_LIMIT;
-      }
+      auto value = [&](int v) {
+        int t = 0;
+        for (int i = 0; connect[v][i] != -1; ++i) {
+          t += W[x[v]][x[connect[v][i]]];
+        }
+        return t;
+      };
       int score = 0, bestScore = INT_MIN;
-      while (true) {
-        double time = TIME_LIMIT - timer.getElapsed();
-        if (time < 0) break;
-        for (int i = 0; i < LOG_SIZE; ++i)
-          log_[i] = min(10.0, round(log_d[i] * time));
-        for (int t = 0; t < 0x10000; ++t) {
-          int a = get_random() % vertex;
-          int b = get_random() % vertex;
-          if (a == b) continue;
-          auto value = [&](int v) {
-            int t = 0;
-            for (int i = 0; connect[v][i] != -1; ++i) {
-              t += W[x[v]][x[connect[v][i]]];
-            }
-            return t;
-          };
-          int pv = value(a) + value(b);
-          swap(x[a], x[b]);
-          int nv = value(a) + value(b);
-          int d = pv - nv;
-          if (d > log_[get_random() & (LOG_SIZE - 1)]) {
+      if (V < 11) {
+        do {
+          score = 0;
+          for (int i = 0; i < V; ++i) {
+            score += value(i);
+          }
+          if (bestScore < score) {
+            bestScore = score;
+            memcpy(best, x, sizeof(x));
+          }
+        } while (next_permutation(x, x + V));
+      } else {
+        constexpr double TIME_LIMIT = 1.9;
+        constexpr int LOG_SIZE = 1 << 10;
+        double log_d[LOG_SIZE];
+        uint8_t log_[LOG_SIZE];
+        for (int i = 0; i < LOG_SIZE; ++i) {
+          log_d[i] = -0.5 * log((i + 0.5) / LOG_SIZE) / TIME_LIMIT;
+        }
+        while (true) {
+          double time = TIME_LIMIT - timer.getElapsed();
+          if (time < 0) break;
+          for (int i = 0; i < LOG_SIZE; ++i)
+            log_[i] = min(10.0, round(log_d[i] * time));
+          for (int t = 0; t < 0x10000; ++t) {
+            int a = get_random() % vertex;
+            int b = get_random() % vertex;
+            if (a == b) continue;
+            int pv = value(a) + value(b);
             swap(x[a], x[b]);
-          } else {
-            score -= d;
-            if (bestScore < score) {
-              bestScore = score;
-              memcpy(best, x, sizeof(x));
+            int nv = value(a) + value(b);
+            int d = pv - nv;
+            if (d > log_[get_random() & (LOG_SIZE - 1)]) {
+              swap(x[a], x[b]);
+            } else {
+              score -= d;
+              if (bestScore < score) {
+                bestScore = score;
+                memcpy(best, x, sizeof(x));
+              }
             }
           }
         }

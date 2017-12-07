@@ -449,7 +449,7 @@ int main() {
         }
         return t;
       };
-      int score, bestScore = INT_MIN;
+      int score = 0, bestScore = INT_MIN;
       if (V < 11) {
         do {
           score = 0;

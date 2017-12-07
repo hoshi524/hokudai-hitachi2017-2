@@ -99,11 +99,12 @@ int main() {
     KR = sqrt(KV);
   }
   {  // Annealing
-    if (V <= KR) {
+    if (V <= KR + 1) {
       for (int i = 0; i < MAX_KV; ++i) X[i] = MAX_V - 1;
+      --V;
       for (int i = 1; i <= V; ++i) {
         int p = ROW * i + 1, d = i & 1;
-        for (int j = 1; j <= V; ++j) {
+        for (int j = 1; j < V; ++j) {
           X[p] = i - 1;
           int n;
           if (d) {
@@ -119,6 +120,10 @@ int main() {
           }
           p = n;
         }
+      }
+      ++V;
+      for (int i = 1; i < V; ++i) {
+        X[i * ROW + V - 1] = V - 1;
       }
     } else {
       int size = 40, vertex;
@@ -258,6 +263,12 @@ int main() {
         }
       }
       int16_t connect[MAX_V][MAX_V];
+      auto connectSize = [&](int x) {
+        int t;
+        for (t = 0; connect[x][t] != -1; ++t) {
+        }
+        return t;
+      };
       {  // connect
         auto calcConnectVertex = [&](int v) {
           static set<int> set;
@@ -266,7 +277,7 @@ int main() {
             if (X[p] == v) {
               for (int d : direction) {
                 int n = p + d;
-                if (X[n] != V && X[n] != v) {
+                if (X[n] < vertex && X[n] != v) {
                   set.insert(X[n]);
                 }
               }
@@ -352,9 +363,7 @@ int main() {
             for (int r = 1; r <= KR; ++r) {
               int p = r * ROW + KR - 1;
               if (X[p] > vertex) continue;
-              int t;
-              for (t = 0; connect[X[p]][t] != -1; ++t) {
-              }
+              int t = connectSize(X[p]);
               if (v > t) {
                 v = t;
                 x = X[p];
@@ -375,9 +384,7 @@ int main() {
             for (int c = 1; c <= KR; ++c) {
               int p = r * ROW + c;
               if (X[p] > vertex) continue;
-              int t;
-              for (t = 0; connect[X[p]][t] != -1; ++t) {
-              }
+              int t = connectSize(X[p]);
               if (v > t) {
                 v = t;
                 v1 = X[p];
@@ -387,9 +394,7 @@ int main() {
             for (int c = 1; c <= KR; ++c) {
               int p = r * ROW + c;
               if (X[p] > vertex || v1 == X[p]) continue;
-              int t;
-              for (t = 0; connect[X[p]][t] != -1; ++t) {
-              }
+              int t = connectSize(X[p]);
               if (v > t) {
                 v = t;
                 v2 = X[p];
@@ -434,13 +439,14 @@ int main() {
               X[ROW + c] = v1;
             }
           }
-          calcConnect();
         }
+        calcConnect();
       }
       int16_t x[MAX_V];
+      int16_t rev[MAX_V];
       int16_t best[MAX_V];
       for (int i = 0; i < MAX_V; ++i) {
-        x[i] = i < V ? i : MAX_V - 1;
+        x[i] = rev[i] = i < V ? i : MAX_V - 1;
       }
       auto value = [&](int v) {
         int t = 0;
@@ -462,6 +468,16 @@ int main() {
           }
         } while (next_permutation(x, x + V));
       } else {
+        int WA[MAX_V][MAX_V];
+        int WS[MAX_V];
+        int CS[MAX_V];
+        memset(WS, 0, sizeof(WS));
+        for (int i = 0; i < vertex; ++i) {
+          CS[i] = connectSize(i);
+          for (int j = 0; j < vertex; ++j) {
+            if (W[i][j]) WA[i][WS[i]++] = j;
+          }
+        }
         constexpr double TIME_LIMIT = 1.9;
         constexpr int LOG_SIZE = 1 << 10;
         double log_d[LOG_SIZE];
@@ -476,7 +492,8 @@ int main() {
             log_[i] = min(10.0, round(log_d[i] * time));
           for (int t = 0; t < 0x10000; ++t) {
             int a = get_random() % vertex;
-            int b = get_random() % vertex;
+            int z = rev[WA[x[a]][get_random() % WS[x[a]]]];
+            int b = connect[z][get_random() % CS[z]];
             if (a == b) continue;
             int pv = value(a) + value(b);
             swap(x[a], x[b]);
@@ -485,6 +502,8 @@ int main() {
             if (d > log_[get_random() & (LOG_SIZE - 1)]) {
               swap(x[a], x[b]);
             } else {
+              rev[x[a]] = a;
+              rev[x[b]] = b;
               score -= d;
               if (bestScore < score) {
                 bestScore = score;

@@ -449,9 +449,10 @@ int main() {
         x[i] = rev[i] = i < V ? i : MAX_V - 1;
       }
       auto value = [&](int v) {
+        int16_t *c = connect[v];
         int t = 0;
-        for (int i = 0; connect[v][i] != -1; ++i) {
-          t += W[x[v]][x[connect[v][i]]];
+        for (int i = 0; c[i] != -1; ++i) {
+          t += W[x[v]][x[c[i]]];
         }
         return t;
       };
@@ -471,9 +472,11 @@ int main() {
         int16_t WA[MAX_V][MAX_V];
         int16_t WS[MAX_V];
         int16_t CS[MAX_V];
+        int16_t P[MAX_V];
         memset(WS, 0, sizeof(WS));
         for (int i = 0; i < vertex; ++i) {
           CS[i] = connectSize(i);
+          P[i] = value(i);
           for (int j = 0; j < vertex; ++j) {
             if (W[i][j]) WA[i][WS[i]++] = j;
           }
@@ -495,15 +498,25 @@ int main() {
             int z = rev[WA[x[a]][get_random() % WS[x[a]]]];
             int b = connect[z][get_random() % CS[z]];
             if (a == b) continue;
-            int pv = value(a) + value(b);
+            int pv = P[a] + P[b];
             swap(x[a], x[b]);
-            int nv = value(a) + value(b);
-            int d = pv - nv;
+            int va = value(a);
+            int vb = value(b);
+            int d = pv - va - vb;
             if (d > log_[get_random() & (LOG_SIZE - 1)]) {
               swap(x[a], x[b]);
             } else {
               rev[x[a]] = a;
               rev[x[b]] = b;
+              auto diff = [&](int p, int v) {
+                int16_t *c = connect[v];
+                for (int i = 0; c[i] != -1; ++i)
+                  P[c[i]] += W[x[v]][x[c[i]]] - W[p][x[c[i]]];
+              };
+              diff(x[a], b);
+              diff(x[b], a);
+              P[a] = va;
+              P[b] = vb;
               score -= d;
               if (bestScore < score) {
                 bestScore = score;

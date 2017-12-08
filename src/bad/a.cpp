@@ -488,6 +488,11 @@ int main() {
           }
           calcT();
           if (perfect) {
+            /**
+             * 終域の最小次数 > 定義域の最大次数
+             * でも完全グラフにほぼならない
+             * から、そこで遷移先を狭めようとしてもあまり効果がなさそうだった
+             */
             bool left[MAX_V];
             memset(left, true, sizeof(left));
             for (int i = 0; i < vertex; ++i) {

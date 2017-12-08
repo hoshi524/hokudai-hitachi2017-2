@@ -468,9 +468,9 @@ int main() {
           }
         } while (next_permutation(x, x + V));
       } else {
-        int WA[MAX_V][MAX_V];
-        int WS[MAX_V];
-        int CS[MAX_V];
+        int16_t WA[MAX_V][MAX_V];
+        uint8_t WS[MAX_V];
+        uint8_t CS[MAX_V];
         memset(WS, 0, sizeof(WS));
         for (int i = 0; i < vertex; ++i) {
           CS[i] = connectSize(i);

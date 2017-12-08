@@ -471,9 +471,11 @@ int main() {
         int16_t WA[MAX_V][MAX_V];
         int16_t WS[MAX_V];
         int16_t CS[MAX_V];
+        int16_t P[MAX_V];
         memset(WS, 0, sizeof(WS));
         for (int i = 0; i < vertex; ++i) {
           CS[i] = connectSize(i);
+          P[i] = value(i);
           for (int j = 0; j < vertex; ++j) {
             if (W[i][j]) WA[i][WS[i]++] = j;
           }
@@ -492,15 +494,33 @@ int main() {
             log_[i] = min(10.0, round(log_d[i] * time));
           for (int t = 0; t < 0x10000; ++t) {
             int a = get_random() % vertex;
-            int b = get_random() % vertex;
+            int z = rev[WA[x[a]][get_random() % WS[x[a]]]];
+            int b = connect[z][get_random() % CS[z]];
             if (a == b) continue;
-            int pv = value(a) + value(b);
+            int pv = P[a] + P[b];
             swap(x[a], x[b]);
-            int nv = value(a) + value(b);
-            int d = pv - nv;
+            int va = value(a);
+            int vb = value(b);
+            int d = pv - va - vb;
             if (d > log_[get_random() & (LOG_SIZE - 1)]) {
               swap(x[a], x[b]);
             } else {
+              rev[x[a]] = a;
+              rev[x[b]] = b;
+              auto sub = [&](int p, int v) {
+                for (int i = 0; connect[v][i] != -1; ++i)
+                  P[connect[v][i]] -= W[p][x[connect[v][i]]];
+              };
+              sub(x[a], b);
+              sub(x[b], a);
+              auto add = [&](int p, int v) {
+                for (int i = 0; connect[v][i] != -1; ++i)
+                  P[connect[v][i]] += W[p][x[connect[v][i]]];
+              };
+              add(x[a], a);
+              add(x[b], b);
+              P[a] = va;
+              P[b] = vb;
               score -= d;
               if (bestScore < score) {
                 bestScore = score;

@@ -132,21 +132,41 @@ int main() {
         vertex = 0;
         for (int i = 1; i + size <= KR + 1; i += size) {
           for (int j = 1; j <= KR; ++j) {
-            if (j & 1) {
-              if (j + size <= KR + 1) {
-                for (int k = 0, p = i * ROW + j; k < size; ++k) {
-                  X[p] = vertex;
-                  p += ROW + 1;
+            if (size & 1) {
+              if ((i + j) & 1) {
+                if (j + size <= KR + 1) {
+                  for (int k = 0, p = i * ROW + j; k < size; ++k) {
+                    X[p] = vertex;
+                    p += ROW + 1;
+                  }
+                  ++vertex;
                 }
-                ++vertex;
+              } else {
+                if (j >= size) {
+                  for (int k = 0, p = i * ROW + j; k < size; ++k) {
+                    X[p] = vertex;
+                    p += ROW - 1;
+                  }
+                  ++vertex;
+                }
               }
             } else {
-              if (j >= size) {
-                for (int k = 0, p = i * ROW + j; k < size; ++k) {
-                  X[p] = vertex;
-                  p += ROW - 1;
+              if (j & 1) {
+                if (j + size <= KR + 1) {
+                  for (int k = 0, p = i * ROW + j; k < size; ++k) {
+                    X[p] = vertex;
+                    p += ROW + 1;
+                  }
+                  ++vertex;
                 }
-                ++vertex;
+              } else {
+                if (j >= size) {
+                  for (int k = 0, p = i * ROW + j; k < size; ++k) {
+                    X[p] = vertex;
+                    p += ROW - 1;
+                  }
+                  ++vertex;
+                }
               }
             }
           }
@@ -155,109 +175,40 @@ int main() {
         --size;
       }
       {
-        if (size & 1) {
-          for (int r = 1; r < KR; ++r) {
-            for (int c = 1; c < KR; ++c) {
-              int i = r * ROW + c;
-              static int K[] = {1, -1};
-              for (int k : K) {
-                if (X[i] < vertex && X[i - k] > vertex && X[i + k] < vertex &&
-                    X[i + ROW] < vertex && X[i - ROW] < vertex &&
-                    X[i - ROW - k] < vertex && X[i + ROW - k] < vertex &&
-                    X[i] != X[i - ROW - k] && X[i] != X[i + ROW - k]) {
-                  X[i - k] = X[i];
-                  i -= k;
-                  static int ROWA[] = {ROW, -ROW};
-                  for (int row : ROWA) {
-                    int di = 3;
-                    int D[] = {-row + k, -row, -row - k};
-                    for (int j = 0, p = i; j < size; ++j) {
-                      for (int j = 0; j < di; ++j) {
-                        int d = D[j];
-                        if (X[p + d] > vertex &&
-                            (X[p + d + 1] < vertex || X[p + d - 1] < vertex) &&
-                            (X[p + d + row] < vertex ||
-                             X[p + d - row] < vertex)) {
-                          X[p + d] = X[p];
-                          p += d;
-                          di = j + 1;
-                          break;
-                        }
-                      }
-                    }
+        for (int i = 0; i < MAX_KV; ++i) {
+          int r = i >> 6;
+          int c = i & (ROW - 1);
+          if (r <= 1 || c <= 1 || r >= KR || c >= KR) continue;
+          static int ROWA[] = {ROW, -ROW};
+          for (int row : ROWA) {
+            if (X[i] < vertex && X[i] == X[i + row + 1] &&
+                X[i - row - 1] > vertex && X[i - row] < vertex &&
+                X[i - row + 1] < vertex && X[i + row - 1] < vertex) {
+              int D[] = {-row + 1, -row, -row - 1};
+              for (int j = 0, p = i; j < size; ++j) {
+                for (int d : D) {
+                  if (X[p + d] > vertex) {
+                    X[p + d] = X[p];
+                    p += d;
+                    break;
                   }
-                  r = 1;
-                  c = 1;
                 }
               }
             }
-          }
-          // 適当に埋める
-          for (int r = 1; r <= KR; ++r) {
-            for (int c = 1; c <= KR; ++c) {
-              int p = r * ROW + c;
-              if (X[p] > vertex) {
-                int t = 0;
-                if (X[p - 1] < vertex) ++t;
-                if (X[p + 1] < vertex) ++t;
-                if (X[p - ROW] < vertex) ++t;
-                if (X[p + ROW] < vertex) ++t;
-                if (t >= 2) {
-                  int v = 0;
-                  static int D[] = {ROW - 1, ROW + 1, -ROW - 1, -ROW + 1};
-                  for (int d : D) {
-                    int n = p + d;
-                    if (X[n] < vertex) {
-                      int a = get_random();
-                      if (v < a) {
-                        v = a;
-                        t = n;
-                      }
-                    }
-                  }
-                  X[p] = X[t];
-                  r = 1;
-                  c = 1;
-                }
-              }
-            }
-          }
-        } else {
-          for (int i = 0; i < MAX_KV; ++i) {
-            int r = i >> 6;
-            int c = i & (ROW - 1);
-            if (r < 2 || c < 2 || r >= KR - 1 || c >= KR - 1) continue;
-            static int ROWA[] = {ROW, -ROW};
-            for (int row : ROWA) {
-              if (X[i] < vertex && X[i] == X[i + row + 1] &&
-                  X[i - row - 1] > vertex && X[i - row] < vertex &&
-                  X[i - row + 1] < vertex && X[i + row - 1] < vertex) {
-                int D[] = {-row + 1, -row, -row - 1};
-                for (int j = 0, p = i; j < size; ++j) {
-                  for (int d : D) {
-                    if (X[p + d] > vertex) {
-                      X[p + d] = X[p];
-                      p += d;
-                      break;
-                    }
+            if (X[i] < vertex && X[i] == X[i + row - 1] &&
+                X[i - row + 1] > vertex && X[i - row] < vertex &&
+                X[i - row - 1] < vertex && X[i + row + 1] < vertex) {
+              int D[] = {-row - 1, -row, -row + 1};
+              for (int j = 0, p = i; j < size; ++j) {
+                for (int d : D) {
+                  if (X[p + d] > vertex) {
+                    X[p + d] = X[p];
+                    p += d;
+                    break;
                   }
                 }
               }
-              if (X[i] < vertex && X[i] == X[i + row - 1] &&
-                  X[i - row + 1] > vertex && X[i - row] < vertex &&
-                  X[i - row - 1] < vertex && X[i + row + 1] < vertex) {
-                int D[] = {-row - 1, -row, -row + 1};
-                for (int j = 0, p = i; j < size; ++j) {
-                  for (int d : D) {
-                    if (X[p + d] > vertex) {
-                      X[p + d] = X[p];
-                      p += d;
-                      break;
-                    }
-                  }
-                }
-                i = 0;
-              }
+              i = 0;
             }
           }
         }
@@ -324,7 +275,7 @@ int main() {
                   for (ns = 0; connect[X[n]][ns] != -1; ++ns) {
                     set.insert(connect[X[n]][ns]);
                   }
-                  int v = -((ps + ns - set.size()) << 10) - (set.size() << 8) +
+                  int v = -((ps + ns - set.size()) << 16) - (set.size() << 8) +
                           (get_random() & 0xff);
                   value[X[p]][X[n]] = v;
                   value[X[n]][X[p]] = v;

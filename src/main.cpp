@@ -238,7 +238,7 @@ int main() {
           for (int n : set) {
             connect[v][s++] = n;
           }
-          return set.size();
+          return s;
         };
         auto calcConnect = [&]() {
           memset(connect, -1, sizeof(connect));

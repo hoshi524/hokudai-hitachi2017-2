@@ -126,44 +126,56 @@ int main() {
         X[i * ROW + V - 1] = V - 1;
       }
     } else {
-      int size = 40, vertex;
-      auto setX = [&](int p, int t) {
-        for (int k = 0; k < size; ++k) {
-          X[p] = vertex;
-          p += ROW + t;
+      int size, vertex;
+      int16_t connect[MAX_V][MAX_V];
+      auto connectSize = [&](int x) {
+        int t;
+        for (t = 0; connect[x][t] != -1; ++t) {
         }
-        ++vertex;
+        return t;
       };
-      while (true) {
-        for (int i = 0; i < MAX_KV; ++i) X[i] = MAX_V - 1;
-        vertex = 0;
-        for (int i = 1; i + size <= KR + 1; i += size) {
-          for (int j = 1; j <= KR; ++j) {
-            int p = i * ROW + j;
-            if (size & 1) {
-              if ((i + j) & 1) {
-                if (j + size <= KR + 1) setX(p, 1);
-              } else {
-                if (j >= size) setX(p, -1);
-              }
-            } else {
-              if (j & 1) {
-                if (j + size <= KR + 1) setX(p, 1);
-              } else {
-                if (j >= size) setX(p, -1);
-              }
+      auto calcConnectVertex = [&](int v) {
+        static set<int> set;
+        set.clear();
+        for (int p = 0; p < MAX_KV; ++p) {
+          if (X[p] == v) {
+            for (int d : direction) {
+              int n = p + d;
+              if (X[n] < vertex && X[n] != v) set.insert(X[n]);
             }
           }
         }
-        if (vertex >= V) break;
-        --size;
-      }
-      if (size > 2) {
+        int s = 0;
+        for (int n : set) {
+          connect[v][s++] = n;
+        }
+        return s;
+      };
+      auto calcConnect = [&]() {
+        memset(connect, -1, sizeof(connect));
+        int sum = 0;
+        for (int v = 0; v < vertex; ++v) {
+          sum += calcConnectVertex(v);
+        }
+        cerr << size << " " << (double)sum / vertex << endl;
+        return sum;
+      };
+      int CX[MAX_KV], cscore = 0;
+      for (int q = 0; q < 5; ++q) {
         size = 40;
+        vertex = 0;
+        auto setX = [&](int p, int t) {
+          for (int k = 0; k < size; ++k) {
+            X[p] = vertex;
+            p += ROW + t;
+          }
+          ++vertex;
+        };
         while (true) {
           for (int i = 0; i < MAX_KV; ++i) X[i] = MAX_V - 1;
-          vertex = 4;
-          for (int i = 3; i + size <= KR - 1; i += size) {
+          vertex = q;
+          for (int i = 1 + min(2, q); i + size <= KR + 1 - max(0, q - 2);
+               i += size) {
             for (int j = 1; j <= KR; ++j) {
               int p = i * ROW + j;
               if (size & 1) {
@@ -183,6 +195,7 @@ int main() {
           }
           if (vertex >= V) break;
           --size;
+          if (size == 0) goto XSetEnd;
         }
         for (int i = 0; i < MAX_KV; ++i) {
           int r = i >> 6;
@@ -221,75 +234,54 @@ int main() {
             }
           }
         }
-        for (int i = 1; i <= KR; ++i) {
-          X[1 * ROW + i] = (i & 1) ? 0 : 1;
-          X[2 * ROW + i] = (i & 1) ? 1 : 0;
-          X[(KR - 1) * ROW + i] = (i & 1) ? 2 : 3;
-          X[(KR - 0) * ROW + i] = (i & 1) ? 3 : 2;
+        if (X[(1 + +min(2, q)) * ROW + KR] > vertex) {
+          for (int r = 1; r <= KR; ++r) {
+            if (X[r * ROW + KR - 1] < vertex) X[r * ROW + KR] = vertex;
+          }
+          ++vertex;
         }
-      }
-      {
-        for (int r = 3; r <= KR; ++r) {
+        if (q == 1) {
+          for (int i = 1; i <= KR; ++i) {
+            X[1 * ROW + i] = 0;
+          }
+        } else if (q == 2) {
+          for (int i = 1; i <= KR; ++i) {
+            X[1 * ROW + i] = (i & 1) ? 0 : 1;
+            X[2 * ROW + i] = (i & 1) ? 1 : 0;
+          }
+        } else if (q == 3) {
+          for (int i = 1; i <= KR; ++i) {
+            X[1 * ROW + i] = (i & 1) ? 0 : 1;
+            X[2 * ROW + i] = (i & 1) ? 1 : 0;
+            X[(KR - 0) * ROW + i] = 2;
+          }
+        } else if (q == 4) {
+          for (int i = 1; i <= KR; ++i) {
+            X[1 * ROW + i] = (i & 1) ? 0 : 1;
+            X[2 * ROW + i] = (i & 1) ? 1 : 0;
+            X[(KR - 1) * ROW + i] = (i & 1) ? 2 : 3;
+            X[(KR - 0) * ROW + i] = (i & 1) ? 3 : 2;
+          }
+        }
+        for (int r = 2; r <= KR; ++r) {
           for (int c = 1; c <= KR; ++c) {
             int p = r * ROW + c;
             if (X[p] < vertex) continue;
-            if (c + 2 <= KR) {
-              if (X[p - ROW + 1] < vertex &&
-                  X[p - ROW + 1] == X[p - ROW - ROW + 2]) {
-                X[p] = X[p - ROW + 1];
-              }
+            if (X[p - ROW + 1] < vertex &&
+                (X[p - ROW + 1] == X[p - ROW - ROW + 2] ||
+                 X[p - ROW + 1] == X[p - ROW - ROW + 1] ||
+                 X[p - ROW + 1] == X[p - ROW - ROW + 0])) {
+              X[p] = X[p - ROW + 1];
             }
-            if (c - 2 >= 1) {
-              if (X[p - ROW - 1] < vertex &&
-                  X[p - ROW - 1] == X[p - ROW - ROW - 2]) {
-                X[p] = X[p - ROW - 1];
-              }
+            if (X[p - ROW - 1] < vertex &&
+                (X[p - ROW - 1] == X[p - ROW - ROW - 2] ||
+                 X[p - ROW - 1] == X[p - ROW - ROW - 1] ||
+                 X[p - ROW + 1] == X[p - ROW - ROW - 0])) {
+              X[p] = X[p - ROW - 1];
             }
-          }
-        }
-        // 適当に埋める
-        for (int r = 1; r <= KR; ++r) {
-          for (int c = 1; c <= KR; ++c) {
-            int p = r * ROW + c;
             if (X[p] > vertex) X[p] = X[p - ROW];
           }
         }
-      }
-      int16_t connect[MAX_V][MAX_V];
-      auto connectSize = [&](int x) {
-        int t;
-        for (t = 0; connect[x][t] != -1; ++t) {
-        }
-        return t;
-      };
-      {  // connect
-        auto calcConnectVertex = [&](int v) {
-          static set<int> set;
-          set.clear();
-          for (int p = 0; p < MAX_KV; ++p) {
-            if (X[p] == v) {
-              for (int d : direction) {
-                int n = p + d;
-                if (X[n] < vertex && X[n] != v) {
-                  set.insert(X[n]);
-                }
-              }
-            }
-          }
-          int s = 0;
-          for (int n : set) {
-            connect[v][s++] = n;
-          }
-          return s;
-        };
-        auto calcConnect = [&]() {
-          memset(connect, -1, sizeof(connect));
-          int sum = 0;
-          for (int v = 0; v < vertex; ++v) {
-            sum += calcConnectVertex(v);
-          }
-          cerr << size << " " << (double)sum / vertex << endl;
-        };
         calcConnect();
         {  // merge
           for (int t = V; t < vertex; ++t) {
@@ -348,9 +340,17 @@ int main() {
             }
           }
           vertex = V;
-          calcConnect();
         }
+        int s = calcConnect();
+        if (cscore < s) {
+          cscore = s;
+          memcpy(CX, X, sizeof(X));
+        }
+        if (size == 1) goto XSetEnd;
       }
+    XSetEnd:
+      memcpy(X, CX, sizeof(X));
+      calcConnect();
       int16_t x[MAX_V];
       int16_t rev[MAX_V];
       int16_t best[MAX_V];
@@ -366,7 +366,7 @@ int main() {
         return t;
       };
       int score = 0, bestScore = INT_MIN;
-      if (V < 11) {
+      if (V < 12) {
         do {
           score = 0;
           for (int i = 0; i < V; ++i) {
@@ -390,7 +390,7 @@ int main() {
             if (W[i][j]) WA[i][WS[i]++] = j;
           }
         }
-        constexpr double TIME_LIMIT = 1.9;
+        constexpr double TIME_LIMIT = 2.9;
         constexpr int LOG_SIZE = 1 << 10;
         double log_d[LOG_SIZE];
         uint8_t log_[LOG_SIZE];

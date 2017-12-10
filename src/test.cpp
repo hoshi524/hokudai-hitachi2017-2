@@ -135,16 +135,18 @@ int main() {
         return t;
       };
       auto calcConnectVertex = [&](int v) {
-        static set<int> set;
+        static vector<int> set(MAX_V >> 1);
         set.clear();
         for (int p = 0; p < MAX_KV; ++p) {
           if (X[p] == v) {
             for (int d : direction) {
               int n = p + d;
-              if (X[n] < vertex && X[n] != v) set.insert(X[n]);
+              if (X[n] < vertex && X[n] != v) set.emplace_back(X[n]);
             }
           }
         }
+        sort(set.begin(), set.end());
+        set.erase(unique(set.begin(), set.end()), set.end());
         int s = 0;
         for (int n : set) {
           connect[v][s++] = n;
@@ -299,7 +301,7 @@ int main() {
                   if (used[X[p]][X[n]]) continue;
                   used[X[p]][X[n]] = true;
                   used[X[n]][X[p]] = true;
-                  static vector<int> set(MAX_V);
+                  static vector<int> set(MAX_V >> 1);
                   set.clear();
                   int ps, ns;
                   for (ps = 0; connect[X[p]][ps] != -1; ++ps) {

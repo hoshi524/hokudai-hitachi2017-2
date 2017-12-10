@@ -234,6 +234,12 @@ int main() {
             }
           }
         }
+        if (X[(1 + +min(2, q)) * ROW + KR] > vertex) {
+          for (int r = 1; r <= KR; ++r) {
+            if (X[r * ROW + KR - 1] < vertex) X[r * ROW + KR] = vertex;
+          }
+          ++vertex;
+        }
         if (q == 1) {
           for (int i = 1; i <= KR; ++i) {
             X[1 * ROW + i] = 0;
@@ -257,42 +263,31 @@ int main() {
             X[(KR - 0) * ROW + i] = (i & 1) ? 3 : 2;
           }
         }
-        {
-          for (int r = 3; r <= KR; ++r) {
-            for (int c = 1; c <= KR; ++c) {
-              int p = r * ROW + c;
-              if (X[p] < vertex) continue;
-              if (c + 2 <= KR) {
-                if (X[p - ROW + 1] < vertex &&
-                    X[p - ROW + 1] == X[p - ROW - ROW + 2]) {
-                  X[p] = X[p - ROW + 1];
-                }
-              }
-              if (c - 2 >= 1) {
-                if (X[p - ROW - 1] < vertex &&
-                    X[p - ROW - 1] == X[p - ROW - ROW - 2]) {
-                  X[p] = X[p - ROW - 1];
-                }
-              }
+        for (int r = 2; r <= KR; ++r) {
+          for (int c = 1; c <= KR; ++c) {
+            int p = r * ROW + c;
+            if (X[p] < vertex) continue;
+            if (X[p - ROW + 1] < vertex &&
+                (X[p - ROW + 1] == X[p - ROW - ROW + 2] ||
+                 X[p - ROW + 1] == X[p - ROW - ROW + 1] ||
+                 X[p - ROW + 1] == X[p - ROW - ROW + 0])) {
+              X[p] = X[p - ROW + 1];
             }
-          }
-          // 適当に埋める
-          for (int r = 1; r <= KR; ++r) {
-            for (int c = 1; c <= KR; ++c) {
-              int p = r * ROW + c;
-              if (X[p] > vertex) X[p] = X[p - ROW];
+            if (X[p - ROW - 1] < vertex &&
+                (X[p - ROW - 1] == X[p - ROW - ROW - 2] ||
+                 X[p - ROW - 1] == X[p - ROW - ROW - 1] ||
+                 X[p - ROW + 1] == X[p - ROW - ROW - 0])) {
+              X[p] = X[p - ROW - 1];
             }
+            if (X[p] > vertex) X[p] = X[p - ROW];
           }
         }
         calcConnect();
         {  // merge
           for (int t = V; t < vertex; ++t) {
-            static int value[MAX_V][MAX_V];
-            for (int i = 0; i < vertex; ++i) {
-              for (int j = 0; j < vertex; ++j) {
-                value[i][j] = INT_MIN;
-              }
-            }
+            static bool used[MAX_V][MAX_V];
+            memset(used, false, sizeof(used));
+            int v = INT_MIN, vmin, vmax;
             for (int r = 1; r <= KR; ++r) {
               for (int c = 1; c <= KR; ++c) {
                 int p = r * ROW + c;
@@ -301,30 +296,27 @@ int main() {
                   int n = p + d;
                   if (X[n] > vertex) continue;
                   if (X[p] == X[n]) continue;
-                  if (value[X[p]][X[n]] != INT_MIN) continue;
-                  static set<int> set;
+                  if (used[X[p]][X[n]]) continue;
+                  used[X[p]][X[n]] = true;
+                  used[X[n]][X[p]] = true;
+                  static vector<int> set(MAX_V);
                   set.clear();
                   int ps, ns;
                   for (ps = 0; connect[X[p]][ps] != -1; ++ps) {
-                    set.insert(connect[X[p]][ps]);
+                    set.emplace_back(connect[X[p]][ps]);
                   }
                   for (ns = 0; connect[X[n]][ns] != -1; ++ns) {
-                    set.insert(connect[X[n]][ns]);
+                    set.emplace_back(connect[X[n]][ns]);
                   }
-                  int v = -((ps + ns - set.size()) << 16) - (set.size() << 8) +
-                          (get_random() & 0xff);
-                  value[X[p]][X[n]] = v;
-                  value[X[n]][X[p]] = v;
-                }
-              }
-            }
-            int v = INT_MIN, vmin, vmax;
-            for (int i = 0; i < vertex; ++i) {
-              for (int j = i + 1; j < vertex; ++j) {
-                if (v < value[i][j]) {
-                  v = value[i][j];
-                  vmin = i;
-                  vmax = j;
+                  sort(set.begin(), set.end());
+                  int s = unique(set.begin(), set.end()) - set.begin();
+                  int g =
+                      -((ps + ns - s) << 16) - (s << 8) + (get_random() & 0xff);
+                  if (v < g) {
+                    v = g;
+                    vmin = min(X[p], X[n]);
+                    vmax = max(X[p], X[n]);
+                  }
                 }
               }
             }

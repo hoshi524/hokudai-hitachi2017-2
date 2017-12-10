@@ -398,34 +398,35 @@ int main() {
           if (time < 0) break;
           for (int i = 0; i < LOG_SIZE; ++i)
             log_[i] = min(10.0, round(log_d[i] * time));
-          for (int t = 0; t < 0x10000; ++t) {
-            int a = get_random() % vertex;
-            int z = rev[WA[x[a]][get_random() % WS[x[a]]]];
-            int b = connect[z][get_random() % CS[z]];
-            if (a == b) continue;
-            int pv = P[a] + P[b];
-            swap(x[a], x[b]);
-            int va = value(a);
-            int vb = value(b);
-            int d = pv - va - vb;
-            if (d > log_[get_random() & (LOG_SIZE - 1)]) {
+          for (int t = 0; t < 0x100; ++t) {
+            for (int a = 0; a < vertex; ++a) {
+              int z = rev[WA[x[a]][get_random() % WS[x[a]]]];
+              int b = connect[z][get_random() % CS[z]];
+              if (a == b) continue;
+              int pv = P[a] + P[b];
               swap(x[a], x[b]);
-            } else {
-              rev[x[a]] = a;
-              rev[x[b]] = b;
-              auto diff = [&](int p, int v) {
-                int16_t *c = connect[v];
-                for (int i = 0; c[i] != -1; ++i)
-                  P[c[i]] += W[x[v]][x[c[i]]] - W[p][x[c[i]]];
-              };
-              diff(x[a], b);
-              diff(x[b], a);
-              P[a] = va;
-              P[b] = vb;
-              score -= d;
-              if (bestScore < score) {
-                bestScore = score;
-                memcpy(best, x, sizeof(x));
+              int va = value(a);
+              int vb = value(b);
+              int d = pv - va - vb;
+              if (d > log_[get_random() & (LOG_SIZE - 1)]) {
+                swap(x[a], x[b]);
+              } else {
+                rev[x[a]] = a;
+                rev[x[b]] = b;
+                auto diff = [&](int p, int v) {
+                  int16_t *c = connect[v];
+                  for (int i = 0; c[i] != -1; ++i)
+                    P[c[i]] += W[x[v]][x[c[i]]] - W[p][x[c[i]]];
+                };
+                diff(x[a], b);
+                diff(x[b], a);
+                P[a] = va;
+                P[b] = vb;
+                score -= d;
+                if (bestScore < score) {
+                  bestScore = score;
+                  memcpy(best, x, sizeof(x));
+                }
               }
             }
           }

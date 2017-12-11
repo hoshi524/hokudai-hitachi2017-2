@@ -362,7 +362,11 @@ int main() {
       memcpy(X, CX, sizeof(X));
       calcConnect();
       int16_t x[MAX_V];
+      int16_t rev[MAX_V];
       int16_t best[MAX_V];
+      for (int i = 0; i < MAX_V; ++i) {
+        x[i] = rev[i] = i < V ? i : MAX_V - 1;
+      }
       auto value = [&](int v) {
         int16_t *c = connect[v];
         int t = 0;
@@ -373,9 +377,6 @@ int main() {
       };
       int score = 0, bestScore = INT_MIN;
       if (V < 12) {
-        for (int i = 0; i < MAX_V; ++i) {
-          x[i] = i < V ? i : MAX_V - 1;
-        }
         do {
           score = 0;
           for (int i = 0; i < V; ++i) {
@@ -387,10 +388,6 @@ int main() {
           }
         } while (next_permutation(x, x + V));
       } else {
-        int16_t rev[MAX_V];
-        for (int i = 0; i < MAX_V; ++i) {
-          x[i] = rev[i] = i < V ? i : MAX_V - 1;
-        }
         int16_t WA[MAX_V][MAX_V];
         int16_t WS[MAX_V];
         int16_t P[MAX_V];
@@ -408,6 +405,12 @@ int main() {
         for (int i = 0; i < LOG_SIZE; ++i) {
           log_d[i] = -0.5 * log((i + 0.5) / LOG_SIZE) / TIME_LIMIT;
         }
+        int test1[MAX_V];
+        int test2[MAX_V];
+        int test3[MAX_V];
+        int test4[MAX_V];
+        double test5[MAX_V];
+        double test6[MAX_V];
         while (true) {
           double time = TIME_LIMIT - timer.getElapsed();
           if (time < 0) break;
@@ -418,6 +421,8 @@ int main() {
               int z = rev[WA[x[a]][get_random() % WS[x[a]]]];
               int b = connect[z][get_random() % CS[z]];
               if (a == b) continue;
+              ++test2[a];
+              ++test4[b];
               int pv = P[a] + P[b];
               swap(x[a], x[b]);
               int va = value(a);
@@ -437,6 +442,10 @@ int main() {
                 diff(x[b], a);
                 P[a] = va;
                 P[b] = vb;
+                ++test1[a];
+                ++test3[b];
+                test5[a] = time;
+                test6[b] = time;
                 score -= d;
                 if (bestScore < score) {
                   bestScore = score;
@@ -445,6 +454,13 @@ int main() {
               }
             }
           }
+        }
+        print();
+        for (int i = 0; i < V; ++i) {
+          cerr << i << "\t" << value(i) << "\t" << CS[i] << "\t" << WS[x[i]]
+               << "\t" << test1[i] << "\t" << test2[i] << "\t" << test3[i]
+               << "\t" << test4[i] << "\t\t" << test5[i] / TIME_LIMIT << "\t\t"
+               << test6[i] / TIME_LIMIT << endl;
         }
       }
       int T[MAX_KV];

@@ -128,12 +128,7 @@ int main() {
     } else {
       int size, vertex;
       int16_t connect[MAX_V][MAX_V];
-      auto connectSize = [&](int x) {
-        int t;
-        for (t = 0; connect[x][t] != -1; ++t) {
-        }
-        return t;
-      };
+      int16_t CS[MAX_V];
       auto calcConnectVertex = [&](int v) {
         static vector<int> set(MAX_V >> 1);
         set.clear();
@@ -147,14 +142,15 @@ int main() {
         }
         sort(set.begin(), set.end());
         set.erase(unique(set.begin(), set.end()), set.end());
+        memset(connect[v], -1, sizeof(connect[v]));
         int s = 0;
         for (int n : set) {
           connect[v][s++] = n;
         }
+        CS[v] = s;
         return s;
       };
       auto calcConnect = [&]() {
-        memset(connect, -1, sizeof(connect));
         int sum = 0;
         for (int v = 0; v < vertex; ++v) {
           sum += calcConnectVertex(v);
@@ -325,6 +321,25 @@ int main() {
             for (int i = 0; i < MAX_KV; ++i) {
               if (X[i] == vmax) X[i] = vmin;
             }
+            for (int i = 0; i < vertex; ++i) {
+              bool a = false, b = false;
+              for (int j = 0; connect[i][j] != -1; ++j) {
+                a |= connect[i][j] == vmax;
+                b |= connect[i][j] == vmin;
+              }
+              if (a) {
+                for (int j = 0; connect[i][j] != -1; ++j) {
+                  if (connect[i][j] == vmax) {
+                    if (b) {
+                      connect[i][j] = connect[i][--CS[i]];
+                      connect[i][CS[i]] = -1;
+                    } else {
+                      connect[i][j] = vmin;
+                    }
+                  }
+                }
+              }
+            }
             calcConnectVertex(vmin);
           }
           int trans[MAX_KV];
@@ -376,11 +391,9 @@ int main() {
       } else {
         int16_t WA[MAX_V][MAX_V];
         int16_t WS[MAX_V];
-        int16_t CS[MAX_V];
         int16_t P[MAX_V];
         memset(WS, 0, sizeof(WS));
         for (int i = 0; i < vertex; ++i) {
-          CS[i] = connectSize(i);
           P[i] = value(i);
           for (int j = 0; j < vertex; ++j) {
             if (W[i][j]) WA[i][WS[i]++] = j;

@@ -308,8 +308,7 @@ int main() {
                   }
                   sort(set.begin(), set.end());
                   int s = unique(set.begin(), set.end()) - set.begin();
-                  int g =
-                      -((ps + ns - s) << 16) - (s << 8) + (get_random() & 0xff);
+                  int g = -((ps + ns - s) << 8) - s;
                   if (v < g) {
                     v = g;
                     vmin = min(X[p], X[n]);

@@ -130,7 +130,7 @@ int main() {
       static int16_t connect[MAX_V][MAX_V];
       static int16_t CS[MAX_V];
       auto calcConnectVertex = [&](int v) {
-        static vector<int> set(MAX_V >> 1);
+        static vector<int> set(MAX_V);
         set.clear();
         for (int p = 0; p < MAX_KV; ++p) {
           if (X[p] == v) {
@@ -297,7 +297,7 @@ int main() {
                   if (used[X[p]][X[n]]) continue;
                   used[X[p]][X[n]] = true;
                   used[X[n]][X[p]] = true;
-                  static vector<int> set(MAX_V >> 1);
+                  static vector<int> set(MAX_V);
                   set.clear();
                   int ps, ns;
                   for (ps = 0; connect[X[p]][ps] != -1; ++ps) {
@@ -448,7 +448,7 @@ int main() {
       static int T[MAX_KV];
       memcpy(T, X, sizeof(T));
       for (int i = 0; i < MAX_KV; ++i) X[i] = MAX_V - 1;
-      for (int i = 0; i < MAX_V; ++i) {
+      for (int i = 0; i < vertex; ++i) {
         for (int j = 0; j < MAX_KV; ++j) {
           if (T[j] == i) {
             X[j] = best[i];

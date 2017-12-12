@@ -400,8 +400,8 @@ int main() {
         }
         constexpr double TIME_LIMIT = 2.9;
         constexpr int LOG_SIZE = 1 << 10;
-        double log_d[LOG_SIZE];
-        uint8_t log_[LOG_SIZE];
+        static double log_d[LOG_SIZE];
+        static uint8_t log_[LOG_SIZE];
         for (int i = 0; i < LOG_SIZE; ++i) {
           log_d[i] = -0.5 * log((i + 0.5) / LOG_SIZE) / TIME_LIMIT;
         }

@@ -155,7 +155,7 @@ int main() {
         for (int v = 0; v < vertex; ++v) {
           sum += calcConnectVertex(v);
         }
-        cerr << size << " " << (double)sum / vertex << endl;
+        // cerr << size << " " << (double)sum / vertex << endl;
         return sum;
       };
       int CX[MAX_KV], cscore = 0;

@@ -155,7 +155,7 @@ int main() {
         for (int v = 0; v < vertex; ++v) {
           sum += calcConnectVertex(v);
         }
-        cerr << size << " " << (double)sum / vertex << endl;
+        // cerr << size << " " << (double)sum / vertex << endl;
         return sum;
       };
       int CX[MAX_KV], cscore = 0;
@@ -362,7 +362,11 @@ int main() {
       memcpy(X, CX, sizeof(X));
       calcConnect();
       int16_t x[MAX_V];
+      int16_t rev[MAX_V];
       int16_t best[MAX_V];
+      for (int i = 0; i < MAX_V; ++i) {
+        x[i] = rev[i] = i < V ? i : MAX_V - 1;
+      }
       auto value = [&](int v) {
         int16_t *c = connect[v];
         int t = 0;
@@ -373,9 +377,6 @@ int main() {
       };
       int score = 0, bestScore = INT_MIN;
       if (V < 12) {
-        for (int i = 0; i < MAX_V; ++i) {
-          x[i] = i < V ? i : MAX_V - 1;
-        }
         do {
           score = 0;
           for (int i = 0; i < V; ++i) {
@@ -387,10 +388,6 @@ int main() {
           }
         } while (next_permutation(x, x + V));
       } else {
-        int16_t rev[MAX_V];
-        for (int i = 0; i < MAX_V; ++i) {
-          x[i] = rev[i] = i < V ? i : MAX_V - 1;
-        }
         int16_t WA[MAX_V][MAX_V];
         int16_t WS[MAX_V];
         int16_t P[MAX_V];

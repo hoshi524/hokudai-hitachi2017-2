@@ -30,12 +30,11 @@ class State:
     test = 0
     lock = threading.Lock()
 
-    def add(self, a, b):
+    def add(self, s, a, b):
         with self.lock:
             self.main += a
             self.test += b
-            print('main : {}'.format(self.main))
-            print('test : {}'.format(self.test))
+            print('{}\t{}\t{}\t{}\t{}'.format(s, a, b, self.main, self.test))
 
 
 scores = State()
@@ -49,7 +48,7 @@ def worker():
             break
         a = solve(MAIN, seed)
         b = solve(TEST, seed)
-        scores.add(a, b)
+        scores.add(seed, a, b)
         q.task_done()
 
 

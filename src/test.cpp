@@ -99,7 +99,11 @@ int main() {
     KR = sqrt(KV);
   }
   {  // Annealing
-    if (V <= KR + 1) {
+    if (V == 2) {
+      for (int i = 0; i < MAX_KV; ++i) X[i] = MAX_V - 1;
+      X[ROW + 1] = 0;
+      X[ROW + 2] = 1;
+    } else if (V <= KR + 1) {
       for (int i = 0; i < MAX_KV; ++i) X[i] = MAX_V - 1;
       --V;
       for (int i = 1; i <= V; ++i) {

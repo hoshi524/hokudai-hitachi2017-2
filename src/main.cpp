@@ -60,7 +60,7 @@ inline unsigned get_random() {
 }
 
 constexpr int ROW = 1 << 6;
-constexpr int MAX_V = 1 << 10;
+constexpr int MAX_V = 1 << 11;
 constexpr int MAX_KV = ROW * ROW;
 
 int V, E, KV, KE, KR;
@@ -127,8 +127,8 @@ int main() {
       }
     } else {
       int size, vertex;
-      int16_t connect[MAX_V][MAX_V];
-      int16_t CS[MAX_V];
+      static int16_t connect[MAX_V][MAX_V];
+      static int16_t CS[MAX_V];
       auto calcConnectVertex = [&](int v) {
         static vector<int> set(MAX_V >> 1);
         set.clear();
@@ -362,9 +362,9 @@ int main() {
     XSetEnd:
       memcpy(X, CX, sizeof(X));
       calcConnect();
-      int16_t x[MAX_V];
-      int16_t rev[MAX_V];
-      int16_t best[MAX_V];
+      static int16_t x[MAX_V];
+      static int16_t rev[MAX_V];
+      static int16_t best[MAX_V];
       for (int i = 0; i < MAX_V; ++i) {
         x[i] = rev[i] = i < V ? i : MAX_V - 1;
       }
@@ -389,9 +389,9 @@ int main() {
           }
         } while (next_permutation(x, x + V));
       } else {
-        int16_t WA[MAX_V][MAX_V];
-        int16_t WS[MAX_V];
-        int16_t P[MAX_V];
+        static int16_t WA[MAX_V][MAX_V];
+        static int16_t WS[MAX_V];
+        static int16_t P[MAX_V];
         memset(WS, 0, sizeof(WS));
         for (int i = 0; i < vertex; ++i) {
           P[i] = value(i);
@@ -401,8 +401,8 @@ int main() {
         }
         constexpr double TIME_LIMIT = 2.9;
         constexpr int LOG_SIZE = 1 << 10;
-        double log_d[LOG_SIZE];
-        uint8_t log_[LOG_SIZE];
+        static double log_d[LOG_SIZE];
+        static uint8_t log_[LOG_SIZE];
         for (int i = 0; i < LOG_SIZE; ++i) {
           log_d[i] = -0.5 * log((i + 0.5) / LOG_SIZE) / TIME_LIMIT;
         }
@@ -445,7 +445,7 @@ int main() {
           }
         }
       }
-      int T[MAX_KV];
+      static int T[MAX_KV];
       memcpy(T, X, sizeof(T));
       for (int i = 0; i < MAX_KV; ++i) X[i] = MAX_V - 1;
       for (int i = 0; i < MAX_V; ++i) {
